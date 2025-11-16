@@ -1,6 +1,8 @@
+from dataclasses import dataclass
+
 REQUIRED_DATASET_COLUMNS = ('Date', 'Time', 'Open', 'High', 'Low', 'OpenInterest')
 
-
+@dataclass
 class ModelConfig:
     """Оптимальные параметры на основе экспериментов"""
     # Параметры данных
