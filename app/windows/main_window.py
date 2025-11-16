@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
         else:
             raise NotImplementedError(f'Файлы с расширением {file_extension} не поддерживаются.')
 
-        self.plot_widget.update_plot(data=stock_data)
+        self.plot_widget.update_plot(data=stock_data['DateTime', 'Close'])
 
     def make_prediction(self):
-        self.plot_widget.add_prediction()
+        pass
