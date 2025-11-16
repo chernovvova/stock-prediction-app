@@ -21,10 +21,7 @@ class PlotWidget(pg.PlotWidget):
         self.plot_item = None
         self.data_loaded = False
 
-    def add_predictions(self):
-        pass
-
-    def update_plot(self, data: pd.DataFrame | None = None):
+    def update_plot(self, pen, symbol, symbol_brush, symbol_size=5, data: pd.DataFrame | None = None):
         """Обновить график"""
         if data is None or data.empty:
             return
@@ -32,7 +29,7 @@ class PlotWidget(pg.PlotWidget):
         x = (data['DateTime'].astype("int64") / 1e9).to_numpy()
         y = data['Close'].to_numpy()
 
-        self.plot(x, y, pen=pg.mkPen('b', width=2))
+        self.plot(x, y, pen=pen, symbol=symbol, symbolBrush=symbol_brush, symbolSize=symbol_size)
 
     def clear_plot(self):
         """Очистить график"""
