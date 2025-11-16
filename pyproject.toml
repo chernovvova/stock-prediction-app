@@ -1,0 +1,19 @@
+[project]
+name = "stock-prediction-app"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Vladimir Chernov",email = "chernovvova2023@yandex.ru"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "pyside6 (>=6.10.0,<7.0.0)",
+    "pyinstaller (>=6.16.0,<7.0.0)",
+    "matplotlib (>=3.10.7,<4.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
