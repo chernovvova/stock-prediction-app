@@ -2,6 +2,14 @@
 
 
 #### Build
+
+Linux/MacOs
 ```shell
-poetry run pyinstaller --onefile --windowed --add-data 'app/models/model.keras'
+poetry run pyinstaller --onefile --noconsole --windowed --add-data 'resources:resources' main.py
 ```
+
+Windows
+```shell
+poetry run pyinstaller --onefile --noconsole --add-data 'resources;resources' main.py
+```
+
