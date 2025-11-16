@@ -1,63 +1,39 @@
-import numpy as np
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from PySide6.QtCore import Qt
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
+import pandas as pd
+import pyqtgraph as pg
 
 
-class PlotWidget(QWidget):
+class PlotWidget(pg.PlotWidget):
+    """Виджет графика биржевых котировок"""
+
     def __init__(self):
         super().__init__()
 
-        self.setAcceptDrops(True)
+        self.setBackground('white')
+        self.setLabel('left', 'Цена закрытия')
+        self.setLabel('bottom', 'Время')
+        self.setTitle('Интерактивный график биржевых котировок')
+        self.showGrid(x=True, y=True, alpha=0.3)
+        self.addLegend()
 
-        layout = QVBoxLayout(self)
+        self.date_axis = pg.DateAxisItem(orientation='bottom')
+        self.setAxisItems({'bottom': self.date_axis})
 
-        self.figure = Figure()
-        self.canvas = FigureCanvasQTAgg(self.figure)
-        layout.addWidget(self.canvas)
+        self.plot_item = None
+        self.data_loaded = False
 
-        self.ax = self.figure.subplots()
+    def add_predictions(self):
+        pass
 
-        self.data = None
-        self.prediction = None
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        urls = event.mimeData().urls()
-        if urls:
-            file_path = urls[0].toLocalFile()
-            self.load_from_file(file_path)
-
-    def load_from_file(self, path: str):
-        print("Loaded file:", path)
-        self.data = 
-        self.prediction = None
-        self._update_plot()
-
-    def add_prediction(self):
-        if self.data is None:
+    def update_plot(self, data: pd.DataFrame | None = None):
+        """Обновить график"""
+        if data is None or data.empty:
             return
 
-        last_value = self.data[-1]
-        forecast = last_value + np.cumsum(np.random.randn(10))
+        x = (data['DateTime'].astype("int64") / 1e9).to_numpy()
+        y = data['Close'].to_numpy()
 
-        self.prediction = forecast
-        self._update_plot()
+        self.plot(x, y, pen=pg.mkPen('b', width=2))
 
-    def _update_plot(self):
-        self.ax.clear()
-
-        if self.data is not None:
-            self.ax.plot(self.data, color="black")
-
-        if self.prediction is not None:
-            start = len(self.data)
-            x = list(range(start, start + len(self.prediction)))
-            self.ax.plot(x, self.prediction, color="red")
-
-        self.ax.set_ylabel("Цена")
-        self.canvas.draw()
+    def clear_plot(self):
+        """Очистить график"""
+        self.clear()
