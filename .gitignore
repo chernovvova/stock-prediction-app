@@ -1,3 +1,5 @@
-.dist
-.build
-.vscode
+dist/
+build/
+.vscode/
+.DS_Store
+**/__pycache__/
