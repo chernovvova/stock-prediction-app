@@ -78,26 +78,28 @@ class MainWindow(QMainWindow):
         )
 
     def make_prediction(self):
-        before_predictions, predictions_denormalized, after_predictions = predict_values(self._stock_data)
+        try:
+            before_predictions, predictions_denormalized, after_predictions = predict_values(self._stock_data)
 
-        self.plot_widget.clear_plot()
+            self.plot_widget.clear_plot()
 
-        self.plot_widget.update_plot(
-            data=before_predictions,
-            pen=pg.mkPen('b', width=3),
-            symbol='o',
-            symbol_brush='b',
-        )
-        self.plot_widget.update_plot(
-            data=predictions_denormalized,
-            pen=pg.mkPen('r', width=3),
-            symbol='o',
-            symbol_brush='r',
-        )
-        self.plot_widget.update_plot(
-            data=after_predictions,
-            pen=pg.mkPen('y', width=3),
-            symbol='o',
-            symbol_brush='y',
-        )
-
+            self.plot_widget.update_plot(
+                data=before_predictions,
+                pen=pg.mkPen('b', width=3),
+                symbol='o',
+                symbol_brush='b',
+            )
+            self.plot_widget.update_plot(
+                data=predictions_denormalized,
+                pen=pg.mkPen('r', width=3),
+                symbol='o',
+                symbol_brush='r',
+            )
+            self.plot_widget.update_plot(
+                data=after_predictions,
+                pen=pg.mkPen('y', width=3),
+                symbol='o',
+                symbol_brush='y',
+            )
+        except Exception as exception:
+            QMessageBox.warning(self, 'Ошибка',  f'Возникла ошибка при прогнозировании: {exception}\n')
