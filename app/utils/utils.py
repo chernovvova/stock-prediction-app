@@ -2,21 +2,23 @@ import os
 import sys
 
 import keras
+import numpy as np
 import pandas as pd
 
 from datetime import timedelta
 
-from app.utils.constants import REQUIRED_DATASET_COLUMNS
+from app.utils.constants import REQUIRED_DATASET_COLUMNS, ModelConfig
 
 
-def resource_path(relative_path):
-    try:
+def resource_path(relative_path: str) -> str:
+    """Возвращает путь к ресурсу, совместимый с PyInstaller."""
+    if hasattr(sys, "_MEIPASS"):
         base_path = sys._MEIPASS
-    except Exception:
+    else:
         base_path = os.path.abspath(".")
 
+    print(os.path.join(base_path, relative_path))
     return os.path.join(base_path, relative_path)
-
 
 
 def load_data_from_csv(file_path : str) -> pd.DataFrame | None:
@@ -30,18 +32,64 @@ def load_data_from_csv(file_path : str) -> pd.DataFrame | None:
     data = data[['DateTime'] + data.columns.drop('DateTime').tolist()]
     data["DateTime"] = pd.to_datetime(data["DateTime"])
 
-    last_week_data = data[data["DateTime"] >= (data["DateTime"][len(data) - 1] - timedelta(days=7))]
+    data['CCI'] = calculate_cci(data['High'], data['Low'], data['Close'])
+    data = data.drop(columns=['Date', 'Time', 'Open', 'High', 'Low', 'OpenInterest'])
 
-    last_week_data['CCI'] = calculate_cci(data['High'], data['Low'], data['Close'])
-    last_week_data = last_week_data.drop(columns=['Date', 'Time', 'Open', 'High', 'Low', 'OpenInterest'])
-
-    return last_week_data
+    return data
 
 
-def predict_values(count_predictions: int) -> pd.DataFrame:
+def predict_values(stock_data: pd.DataFrame):
     """Предсказание значений"""
-    model = keras.models.load_model(resource_path('app/models/model.keras'))
-    model.summary()
+    model = keras.models.load_model(resource_path('resources/model.keras'))
+
+    df = stock_data.copy()
+
+    df = df.iloc[38:].reset_index(drop=True)
+
+    df['Close'], mass_c = chunk_normalize_simple(df['Close'], 48)
+    df['Volume'], mass_v = chunk_normalize_simple(df['Volume'], 48)
+
+    df['CCI_Flag'] = 0
+    df.loc[df['CCI'] < -100, 'CCI_Flag'] = -1
+    df.loc[df['CCI'] > 100, 'CCI_Flag'] = 1
+
+    df['CCI'] = np.clip(df['CCI'], -200, 200)
+    df['CCI'] = (df['CCI'] + 200) / 400.0
+
+    df['DateTime'] = pd.to_datetime(df['DateTime'])
+    df.set_index('DateTime', inplace=True)
+
+    features = df.copy()
+
+    X, y = create_sequences(features, ModelConfig.TIME_STEPS)
+
+    test_size = int(len(X) * ModelConfig.TEST_SIZE)
+    train_size = len(X) - test_size
+
+    X_train, y_train = X[:train_size], y[:train_size]
+    X_test, y_test = X[train_size:], y[train_size:]
+
+    data = X_test[-10:]
+    y_predictions = model.predict(data)
+    y_real = df[-10:]
+
+    before_predictions = stock_data[
+        stock_data['DateTime'] >= (stock_data['DateTime'][len(stock_data) - 1] - timedelta(days=7))
+    ][:-10]
+
+    last_before_predictions = before_predictions.iloc[[len(before_predictions) - 1]]
+
+    predictions_denormalized = pd.DataFrame({
+        'DateTime': pd.to_datetime(y_real.index.values),
+        'Close': denormalize(y_predictions, mass_c),
+    })
+    predictions_denormalized = pd.concat([last_before_predictions, predictions_denormalized], ignore_index=True)
+    after_predictions = pd.DataFrame({
+        'DateTime': pd.to_datetime(y_real.index.values),
+        'Close': stock_data['Close'].values[-10:],
+    })
+    after_predictions = pd.concat([last_before_predictions, after_predictions], ignore_index=True)
+    return before_predictions, predictions_denormalized, after_predictions
 
 
 def calculate_cci(high, low, close, window=20):
@@ -52,7 +100,6 @@ def calculate_cci(high, low, close, window=20):
 
     mean_deviation = abs(typical_price - sma_tp).rolling(window=window).mean()
 
-    # CCI
     cci = (typical_price - sma_tp) / (0.015 * mean_deviation)
 
     return cci
@@ -85,3 +132,19 @@ def chunk_normalize_simple(series, chunk_size=48):
                 ms = [chunk_mean, chunk_range]
 
     return normalized, ms
+
+
+def create_sequences(data, time_steps):
+    X, y = [], []
+    for i in range(len(data) - time_steps):
+        X.append(data.iloc[i:(i + time_steps)].values)
+        y.append(data.iloc[i + time_steps]['Close'])
+    return np.array(X), np.array(y)
+
+
+def denormalize(pred, mass_c):
+    tmp = []
+    for i in range(len(pred)):
+        tmp.append((pred[i] * mass_c[1] + mass_c[0])[0])
+
+    return tmp
