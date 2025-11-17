@@ -87,17 +87,19 @@ class MainWindow(QMainWindow):
             pen=pg.mkPen('b', width=3),
             symbol='o',
             symbol_brush='b',
+            name='До предсказания',
         )
         self.plot_widget.update_plot(
             data=predictions_denormalized,
             pen=pg.mkPen('r', width=3),
             symbol='o',
             symbol_brush='r',
+            name='Предсказанные значения',
         )
         self.plot_widget.update_plot(
             data=after_predictions,
             pen=pg.mkPen('y', width=3),
             symbol='o',
             symbol_brush='y',
+            name='Настоящие значения',
         )
-
