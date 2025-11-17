@@ -1,6 +1,6 @@
 # stock-prediction-app
 
-#### Dev
+#### Development
 
 1. Установить poetry.
 2. Установка зависимостей
