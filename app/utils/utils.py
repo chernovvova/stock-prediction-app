@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 
 import keras
 import numpy as np
@@ -10,14 +11,13 @@ from datetime import timedelta
 from app.utils.constants import REQUIRED_DATASET_COLUMNS, ModelConfig
 
 
-def resource_path(relative_path: str) -> str:
+def resource_path(relative_path: Path) -> str:
     """Возвращает путь к ресурсу, совместимый с PyInstaller."""
     if hasattr(sys, "_MEIPASS"):
         base_path = sys._MEIPASS
     else:
         base_path = os.path.abspath(".")
 
-    print(os.path.join(base_path, relative_path))
     return os.path.join(base_path, relative_path)
 
 
@@ -40,7 +40,7 @@ def load_data_from_csv(file_path : str) -> pd.DataFrame | None:
 
 def predict_values(stock_data: pd.DataFrame):
     """Предсказание значений"""
-    model = keras.models.load_model(resource_path('resources/model.keras'))
+    model = keras.models.load_model(resource_path(Path('resources/model.keras')))
 
     df = stock_data.copy()
 

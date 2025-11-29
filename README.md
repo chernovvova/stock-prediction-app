@@ -1,5 +1,17 @@
 # stock-prediction-app
 
+#### Development
+
+1. Установить poetry.
+2. Установка зависимостей
+  ```
+  poetry install
+  ```
+3. Запуск приложения
+```
+poetry run python stock_prediction_app.py
+```
+
 
 #### Build
 

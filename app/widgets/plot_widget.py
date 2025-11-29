@@ -1,5 +1,6 @@
 import pandas as pd
 import pyqtgraph as pg
+from PySide6.QtWidgets import QMessageBox
 
 
 class PlotWidget(pg.PlotWidget):
@@ -24,13 +25,16 @@ class PlotWidget(pg.PlotWidget):
 
     def update_plot(self, pen, symbol, symbol_brush, symbol_size=5, name: str = None, data: pd.DataFrame | None = None):
         """Обновить график"""
-        if data is None or data.empty:
-            return
+        try:
+            if data is None or data.empty:
+                return
 
-        x = (data['DateTime'].astype("int64") / 1e9).to_numpy()
-        y = data['Close'].to_numpy()
+            x = (data['DateTime'].astype("int64") / 1e9).to_numpy()
+            y = data['Close'].to_numpy()
 
-        self.plot(x, y, pen=pen, symbol=symbol, symbolBrush=symbol_brush, symbolSize=symbol_size, name=name)
+            self.plot(x, y, pen=pen, symbol=symbol, symbolBrush=symbol_brush, symbolSize=symbol_size, name=name)
+        except Exception as exception:
+            QMessageBox.warning(self, 'Ошибка', f'Возникла ошибка при построении графика: {exception}')
 
     def clear_plot(self):
         """Очистить график"""
