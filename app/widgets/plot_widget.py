@@ -41,7 +41,7 @@ class PlotWidget(pg.PlotWidget):
             x = np.arange(len(data['DateTime']))
             self.last_index = x[-1]
         else:
-            x = np.arange(self.last_index + 1, self.last_index + len(data['DateTime']) + 1)
+            x = np.arange(self.last_index, self.last_index + len(data['DateTime']))
             self.last_index = x[-1]
         y = data['Close'].to_numpy()
 

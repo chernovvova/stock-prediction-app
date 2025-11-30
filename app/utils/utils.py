@@ -6,7 +6,7 @@ import keras
 import numpy as np
 import pandas as pd
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from app.utils.constants import REQUIRED_DATASET_COLUMNS, ModelConfig
 
@@ -62,30 +62,19 @@ def predict_next_value(stock_data: pd.DataFrame):
 
     X, y = create_sequences(features, ModelConfig.TIME_STEPS)
 
-    data = np.expand_dims(X[-2], axis=0)
+    data = np.expand_dims(X[-1], axis=0)
     y_predictions = model.predict(data)
-    y_real = df.index.values[-1]
 
-    before_predictions = stock_data[
-        stock_data['DateTime'] >= (stock_data['DateTime'][len(stock_data) - 1] - timedelta(days=7))
-    ][:-1]
-
-    last_before_predictions = before_predictions.iloc[[len(before_predictions) - 1]]
+    last_before_predictions = stock_data.iloc[[len(stock_data) - 1]]
+    next_dt = calculate_next_dt(str(last_before_predictions['DateTime'].values[0]))
 
     predictions_denormalized = pd.DataFrame({
-        'DateTime': pd.to_datetime(y_real),
+        'DateTime': pd.to_datetime(next_dt),
         'Close': denormalize(y_predictions, mass_c),
     })
     predictions_denormalized = pd.concat([last_before_predictions, predictions_denormalized], ignore_index=True)
-    after_predictions = pd.DataFrame(
-        data={
-            'DateTime': pd.to_datetime(y_real),
-            'Close': stock_data['Close'].values[-1],
-        },
-        index=[0],
-    )
-    after_predictions = pd.concat([last_before_predictions, after_predictions], ignore_index=True)
-    return before_predictions, predictions_denormalized, after_predictions
+
+    return predictions_denormalized
 
 
 def calculate_cci(high, low, close, window=20):
@@ -144,3 +133,9 @@ def denormalize(pred, mass_c):
         tmp.append((pred[i] * mass_c[1] + mass_c[0])[0])
 
     return tmp
+
+
+def calculate_next_dt(dt: str) -> str:
+    dt_obj = datetime.fromisoformat(dt)
+    next_dt = dt_obj + timedelta(minutes=5)
+    return next_dt.isoformat()

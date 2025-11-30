@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
         self.plot_widget.clear_plot()
         last_week_data = stock_data[
             stock_data["DateTime"] >= (stock_data["DateTime"][len(stock_data) - 1] - timedelta(days=7))
-        ][:-1]
+        ]
         self.plot_widget.update_plot(
             data=last_week_data,
             pen=pg.mkPen('b', width=3),
@@ -79,20 +79,11 @@ class MainWindow(QMainWindow):
         )
 
     def make_prediction(self):
-        before_predictions, predictions_denormalized, after_predictions = predict_next_value(self._stock_data)
-        self.plot_widget.last_index -= 1
+        predictions_denormalized = predict_next_value(self._stock_data)
         self.plot_widget.update_plot(
             data=predictions_denormalized,
             pen=pg.mkPen('r', width=3),
             symbol='o',
             symbol_brush='r',
             name='Предсказанные значения',
-        )
-        self.plot_widget.last_index -= len(predictions_denormalized)
-        self.plot_widget.update_plot(
-            data=after_predictions,
-            pen=pg.mkPen('y', width=3),
-            symbol='o',
-            symbol_brush='y',
-            name='Настоящие значения',
         )
