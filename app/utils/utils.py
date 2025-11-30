@@ -38,12 +38,11 @@ def load_data_from_csv(file_path : str) -> pd.DataFrame | None:
     return data
 
 
-def predict_values(stock_data: pd.DataFrame):
+def predict_next_value(stock_data: pd.DataFrame):
     """Предсказание значений"""
     model = keras.models.load_model(resource_path(Path('resources/model.keras')))
 
     df = stock_data.copy()
-
     df = df.iloc[38:].reset_index(drop=True)
 
     df['Close'], mass_c = chunk_normalize_simple(df['Close'], 48)
@@ -63,31 +62,28 @@ def predict_values(stock_data: pd.DataFrame):
 
     X, y = create_sequences(features, ModelConfig.TIME_STEPS)
 
-    test_size = int(len(X) * ModelConfig.TEST_SIZE)
-    train_size = len(X) - test_size
-
-    X_train, y_train = X[:train_size], y[:train_size]
-    X_test, y_test = X[train_size:], y[train_size:]
-
-    data = X_test[-10:]
+    data = np.expand_dims(X[-2], axis=0)
     y_predictions = model.predict(data)
-    y_real = df[-10:]
+    y_real = df.index.values[-1]
 
     before_predictions = stock_data[
         stock_data['DateTime'] >= (stock_data['DateTime'][len(stock_data) - 1] - timedelta(days=7))
-    ][:-10]
+    ][:-1]
 
     last_before_predictions = before_predictions.iloc[[len(before_predictions) - 1]]
 
     predictions_denormalized = pd.DataFrame({
-        'DateTime': pd.to_datetime(y_real.index.values),
+        'DateTime': pd.to_datetime(y_real),
         'Close': denormalize(y_predictions, mass_c),
     })
     predictions_denormalized = pd.concat([last_before_predictions, predictions_denormalized], ignore_index=True)
-    after_predictions = pd.DataFrame({
-        'DateTime': pd.to_datetime(y_real.index.values),
-        'Close': stock_data['Close'].values[-10:],
-    })
+    after_predictions = pd.DataFrame(
+        data={
+            'DateTime': pd.to_datetime(y_real),
+            'Close': stock_data['Close'].values[-1],
+        },
+        index=[0],
+    )
     after_predictions = pd.concat([last_before_predictions, after_predictions], ignore_index=True)
     return before_predictions, predictions_denormalized, after_predictions
 
