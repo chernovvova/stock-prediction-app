@@ -6,7 +6,7 @@ import keras
 import numpy as np
 import pandas as pd
 
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from app.utils.constants import REQUIRED_DATASET_COLUMNS, ModelConfig
 
@@ -38,12 +38,11 @@ def load_data_from_csv(file_path : str) -> pd.DataFrame | None:
     return data
 
 
-def predict_values(stock_data: pd.DataFrame):
+def predict_next_value(stock_data: pd.DataFrame):
     """Предсказание значений"""
     model = keras.models.load_model(resource_path(Path('resources/model.keras')))
 
     df = stock_data.copy()
-
     df = df.iloc[38:].reset_index(drop=True)
 
     df['Close'], mass_c = chunk_normalize_simple(df['Close'], 48)
@@ -63,33 +62,19 @@ def predict_values(stock_data: pd.DataFrame):
 
     X, y = create_sequences(features, ModelConfig.TIME_STEPS)
 
-    test_size = int(len(X) * ModelConfig.TEST_SIZE)
-    train_size = len(X) - test_size
-
-    X_train, y_train = X[:train_size], y[:train_size]
-    X_test, y_test = X[train_size:], y[train_size:]
-
-    data = X_test[-10:]
+    data = np.expand_dims(X[-1], axis=0)
     y_predictions = model.predict(data)
-    y_real = df[-10:]
 
-    before_predictions = stock_data[
-        stock_data['DateTime'] >= (stock_data['DateTime'][len(stock_data) - 1] - timedelta(days=7))
-    ][:-10]
-
-    last_before_predictions = before_predictions.iloc[[len(before_predictions) - 1]]
+    last_before_predictions = stock_data.iloc[[len(stock_data) - 1]]
+    next_dt = calculate_next_dt(str(last_before_predictions['DateTime'].values[0]))
 
     predictions_denormalized = pd.DataFrame({
-        'DateTime': pd.to_datetime(y_real.index.values),
+        'DateTime': pd.to_datetime(next_dt),
         'Close': denormalize(y_predictions, mass_c),
     })
     predictions_denormalized = pd.concat([last_before_predictions, predictions_denormalized], ignore_index=True)
-    after_predictions = pd.DataFrame({
-        'DateTime': pd.to_datetime(y_real.index.values),
-        'Close': stock_data['Close'].values[-10:],
-    })
-    after_predictions = pd.concat([last_before_predictions, after_predictions], ignore_index=True)
-    return before_predictions, predictions_denormalized, after_predictions
+
+    return predictions_denormalized
 
 
 def calculate_cci(high, low, close, window=20):
@@ -148,3 +133,9 @@ def denormalize(pred, mass_c):
         tmp.append((pred[i] * mass_c[1] + mass_c[0])[0])
 
     return tmp
+
+
+def calculate_next_dt(dt: str) -> str:
+    dt_obj = datetime.fromisoformat(dt)
+    next_dt = dt_obj + timedelta(minutes=5)
+    return next_dt.isoformat()
